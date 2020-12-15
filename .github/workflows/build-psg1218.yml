@@ -1,30 +1,19 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: PSG1218
+name: Build Padavan
 
 on: 
 #  release:
 #    types: [published]
-#  push:                                                        # 推送操作
+#  push:
 #    tags:
-#      - 'v*'
-#    branches:                                                  # 分支
-#      - main                                                   # 主分支
-#  workflow_dispatch:
-#  schedule:                                                    # 自动编译时间表
-#    - cron: 0 19 * * *                                         # 每天国际时间19点，北京时间凌晨3点执行(北京+8)
-  watch:                                                        # 监视操作
-    types: [started]                                            # 点击 Star 之后
-env:
-  images_dir: /opt/images                                       # 固件目录
-  build_dir: /opt/rt-n56u                                       # 源码目录
-  work_dir: /opt/rt-n56u/trunk                                  # 工作目录
-  custom_modify: true                                           # 修改文件
-  upload_cowtransfer: true                                      # 上传到奶牛快传
-  upload_wetransfer: true                                       # 上传到 WeTransfer
-  src_git: https://github.com/chongshengB/rt-n56u.git           # 源码地址
-  config_dir: /opt/rt-n56u/trunk/configs/templates              # 设备模板目录
-  toolchain_dir: /opt/rt-n56u/toolchain-mipsel                  #ToolChain地址
-#############################################################################################################  
+#    - 'v*'
+  #  branches: 
+  #    - master
+#  schedule:
+#    - cron: 0 8 * * 5
+  watch:
+    types: [started]
+
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -43,15 +32,15 @@ jobs:
         pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget
     - name: Clone source code
       run: |
-        git clone --depth=1 $(src_git) $(build_dir)
-        cd $(toolchain_dir)
+        git clone --depth=1 https://github.com/chongshengB/rt-n56u.git /opt/rt-n56u
+        cd /opt/rt-n56u/toolchain-mipsel
         sh dl_toolchain.sh
-        mkdir -p $(/opt/images)
+        mkdir -p /opt/images/
     - name: Build Firmware
       env:
         TNAME: PSG1218
       run: |
-        cd $(work_dir)
+        cd /opt/rt-n56u/trunk
         if [ ! -f configs/templates/$TNAME.config ] ; then
         echo "configs/templates/$TNAME.config not found "
         exit 1
@@ -87,7 +76,7 @@ jobs:
         echo "CONFIG_FIRMWARE_INCLUDE_FRPC=n" >> .config #内网穿透FRPC
         echo "CONFIG_FIRMWARE_INCLUDE_FRPS=n" >> .config #内网穿透FRPS
         echo "CONFIG_FIRMWARE_INCLUDE_TUNSAFE=n" >> .config #TUNSAFE
-        echo "CONFIG_FIRMWARE_INCLUDE_ALIDDNS=y" >> .config #阿里DDNS
+        echo "CONFIG_FIRMWARE_INCLUDE_ALIDDNS=n" >> .config #阿里DDNS
         echo "CONFIG_FIRMWARE_INCLUDE_SMARTDNS=y" >> .config #smartdns
         echo "CONFIG_FIRMWARE_INCLUDE_SMARTDNSBIN=y" >> .config #smartdns二进制文件
         echo "CONFIG_FIRMWARE_INCLUDE_V2RAY=n" >> .config #集成v2ray执行文件（3.8M左右)，如果不集成，会从网上下载下来执行，不影响正常使用
