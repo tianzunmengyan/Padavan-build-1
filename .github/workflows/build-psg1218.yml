@@ -1,22 +1,33 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build Padavan
+name: PSG1218
 
 on: 
-  release:
-    types: [published]
-  push:
-    tags:
-    - 'v*'
-  #  branches: 
-  #    - master
-#  schedule:
-#    - cron: 0 8 * * 5
-  watch:
-    types: [started]
-
+#  release:
+#    types: [published]
+#  push:                                                        # 推送操作
+#    tags:
+#      - 'v*'
+#    branches:                                                  # 分支
+#      - main                                                   # 主分支
+#  workflow_dispatch:
+#  schedule:                                                    # 自动编译时间表
+#    - cron: 0 19 * * *                                         # 每天国际时间19点，北京时间凌晨3点执行(北京+8)
+  watch:                                                        # 监视操作
+    types: [started]                                            # 点击 Star 之后
+env:
+  images_dir: /opt/images                                       # 固件目录
+  build_dir: /opt/rt-n56u                                       # 源码目录
+  work_dir: /opt/rt-n56u/trunk                                  # 工作目录
+  custom_modify: true                                           # 修改文件
+  upload_cowtransfer: true                                      # 上传到奶牛快传
+  upload_wetransfer: true                                       # 上传到 WeTransfer
+  src_git: https://github.com/chongshengB/rt-n56u.git           # 源码地址
+  config_dir: /opt/rt-n56u/trunk/configs/templates              # 设备模板目录
+  toolchain_dir: /opt/rt-n56u/toolchain-mipsel                  #ToolChain地址
+#############################################################################################################  
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
@@ -32,15 +43,15 @@ jobs:
         pkg-config zlib1g-dev libgmp3-dev libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget
     - name: Clone source code
       run: |
-        git clone --depth=1 https://github.com/chongshengB/rt-n56u.git /opt/rt-n56u
-        cd /opt/rt-n56u/toolchain-mipsel
+        git clone --depth=1 $(src_git) $(build_dir)
+        cd $(toolchain_dir)
         sh dl_toolchain.sh
-        mkdir -p /opt/images/
+        mkdir -p $(/opt/images)
     - name: Build Firmware
       env:
-        TNAME: K2P-5.0
+        TNAME: PSG1218
       run: |
-        cd /opt/rt-n56u/trunk
+        cd $(work_dir)
         if [ ! -f configs/templates/$TNAME.config ] ; then
         echo "configs/templates/$TNAME.config not found "
         exit 1
@@ -72,7 +83,7 @@ jobs:
         echo "CONFIG_FIRMWARE_INCLUDE_SSOBFS=n" >> .config # simple-obfs混淆插件
         echo "CONFIG_FIRMWARE_INCLUDE_SSSERVER=n" >> .config #SS server
         echo "CONFIG_FIRMWARE_INCLUDE_DNSFORWARDER=n" >> .config #DNSFORWARDER
-        echo "CONFIG_FIRMWARE_INCLUDE_ADBYBY=y" >> .config #adbyby plus+
+        echo "CONFIG_FIRMWARE_INCLUDE_ADBYBY=n" >> .config #adbyby plus+
         echo "CONFIG_FIRMWARE_INCLUDE_FRPC=n" >> .config #内网穿透FRPC
         echo "CONFIG_FIRMWARE_INCLUDE_FRPS=n" >> .config #内网穿透FRPS
         echo "CONFIG_FIRMWARE_INCLUDE_TUNSAFE=n" >> .config #TUNSAFE
@@ -81,12 +92,12 @@ jobs:
         echo "CONFIG_FIRMWARE_INCLUDE_SMARTDNSBIN=y" >> .config #smartdns二进制文件
         echo "CONFIG_FIRMWARE_INCLUDE_V2RAY=n" >> .config #集成v2ray执行文件（3.8M左右)，如果不集成，会从网上下载下来执行，不影响正常使用
         echo "CONFIG_FIRMWARE_INCLUDE_TROJAN=n" >> .config #集成trojan执行文件(1.1M左右)，如果不集成，会从网上下载下来执行，不影响正常使用
-        echo "CONFIG_FIRMWARE_INCLUDE_KOOLPROXY=y" >> .config #KP广告过滤
-        echo "CONFIG_FIRMWARE_INCLUDE_CADDY=y" >> .config #在线文件管理服务
+        echo "CONFIG_FIRMWARE_INCLUDE_KOOLPROXY=n" >> .config #KP广告过滤
+        echo "CONFIG_FIRMWARE_INCLUDE_CADDY=n" >> .config #在线文件管理服务
         echo "CONFIG_FIRMWARE_INCLUDE_CADDYBIN=n" >> .config #集成caddu执行文件，此文件有13M,请注意固件大小。如果不集成，会从网上下载下来执行，不影响正常使用
-        echo "CONFIG_FIRMWARE_INCLUDE_ADGUARDHOME=y" >> .config
+        echo "CONFIG_FIRMWARE_INCLUDE_ADGUARDHOME=n" >> .config
         echo "CONFIG_FIRMWARE_INCLUDE_SRELAY=n" >> .config #可以不集成
-        echo "CONFIG_FIRMWARE_INCLUDE_WYY=y" >> .config #网易云解锁
+        echo "CONFIG_FIRMWARE_INCLUDE_WYY=n" >> .config #网易云解锁
         echo "CONFIG_FIRMWARE_INCLUDE_WYYBIN=n" >> .config #网易云解锁GO版本执行文件（4M多）注意固件超大小,不集成会自动下载
         echo "CONFIG_FIRMWARE_INCLUDE_ZEROTIER=n" >> .config #zerotier ~1.3M
         #########################################################################################
