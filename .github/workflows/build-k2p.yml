@@ -1,5 +1,5 @@
 #修改TNAME: K2P-5.0 中的K2P-5.0为你需要编译的型号，注意名称要与configs/templates/目录下的名字相同
-name: Build K2P
+name: K2P-5.0
 
 on: 
 #  release:
@@ -13,7 +13,19 @@ on:
 #    - cron: 0 8 * * 5
   watch:
     types: [started]
-
+env:
+  images_dir: /opt/images                                       # 固件目录
+  build_dir: /opt/rt-n56u                                       # 源码目录
+  work_dir: /opt/rt-n56u/trunk                                  # 工作目录
+  custom_modify: true                                           # 修改文件
+  upload_cowtransfer: true                                      # 上传到奶牛快传
+  upload_wetransfer: true                                       # 上传到 WeTransfer
+  src_git: https://github.com/chongshengB/rt-n56u.git           # 源码地址
+  config_dir: /opt/rt-n56u/trunk/configs/templates              # 设备模板目录
+  toolchain_dir: /opt/rt-n56u/toolchain-mipsel/toolchain-3.4.x  # 工具链目录
+  toolchain_pkg: mipsel-linux-uclibc.tar.xz
+  toolchain_url: https://github.com/TurBoTse/padavan-toolchain/releases/download/v1.0
+#######################################################################################
 jobs:
   build:
     runs-on: ubuntu-20.04
@@ -97,10 +109,22 @@ jobs:
         #########################################################################################
         sudo ./clear_tree
         sudo ./build_firmware_modify $TNAME 0
-        sudo mv -f images/*.trx /opt/images/
+        sudo mv -f images/*.trx $images_dir/ChongshengB_${TNAME}_$(date +%Y%m%d).trx
     - name : Upload packages
       uses: actions/upload-artifact@master
-      if: always()
+      if: ${{ success() }}
       with:
         name: Padavan-packages
         path: /opt/images
+    - name: Upload images to CowTransfer
+      if: success()
+      run: |                         # 上传到奶牛快传
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${images_dir} 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+    - name: Upload images to WeTransfer
+      if: success()
+      run: |                         # 上传到 WeTransfer
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress ${images_dir} 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
